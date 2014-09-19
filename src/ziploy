@@ -206,6 +206,11 @@ class ZIPloy extends PHPloy {
 
         $deployFile = __DIR__ . "/" . $this->buildDeployFile;
 
+        $bdir = $this->buildDir . "/build";
+
+        if(!file_exists($bdir))
+            mkdir($bdir);
+
         if(file_exists($deployFile) && is_dir($publicDir)) {
             $this->publicDeployFile = $this->publicDir . "/" . $this->buildDeployFile;
             copy($deployFile, $this->publicDeployFile);
@@ -222,6 +227,7 @@ class ZIPloy extends PHPloy {
         }
 
         $this->output("<bgCyan>Build files added to upload queue.");
+        die;
     }
 
 }
