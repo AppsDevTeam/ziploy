@@ -1,0 +1,224 @@
+#!/usr/bin/env php
+<?php
+require __DIR__ . "/phploy";
+require __DIR__ . "/ExtendedZipArchive.php";
+
+/**
+ * Extended PHPloy
+ * + uploads composer/bower dependencies
+ * + zip files before upload
+ * + upload non-zipped build files to extract ZIP
+ *
+ * @author Vojtech Studenka | www.appsdevteam.com
+ */
+class ZIPloy extends PHPloy {
+
+    /**@var string */
+    protected $composerFile = "composer.json";
+
+    /** @var string */
+    protected $bowerFile = "bower.json";
+
+    /** @var string|null Bower vendor dir */
+    protected $bowerDir = null;
+
+    /** @var string Public dir */
+    protected $publicDir = "";
+
+    /** @var string Build dir */
+    protected $buildDir = "";
+
+    /** @var string|null Composer vendor dir */
+    protected $composerDir = null;
+
+    /** @var ExtendedZipArchive Zip archive */
+    protected $diffArchive = null;
+
+    /** @var string Zip archive name */
+    protected $diffArchiveName = "diff.zip"; 
+
+    /** @var  string URL of site (public root) */
+    protected $site;
+
+    /** @var string Name of deploy file */
+    private $buildDeployFile = "deploy.php";
+
+    /** @var string Temporary name of public deploy file */
+    private $publicDeployFile;
+
+    /** @var array Build files (not included in ZIP) */
+    protected $buildFiles = [
+        "private/build/ziploy",
+        "private/build/DiffInstaller.php",
+        "private/build/ExtendedZipArchive.php",
+        "private/build/phploy"
+    ];
+
+    /**
+     * Prepare server variables
+     * @return null|void
+     */
+    protected function prepareServers() {
+        parent::prepareServers();
+        $server = $this->servers[$this->server];
+
+        if(isset($server["bowerDir"]))
+            $this->bowerDir = $server["bowerDir"];
+
+        if(isset($server["composerDir"]))
+            $this->composerDir = $server["composerDir"];
+
+        if(isset($server["site"]))
+            $this->site = $server["site"];
+
+        if(isset($server["publicDir"]))
+            $this->publicDir = $server["publicDir"];
+
+        if(isset($server["buildDir"])) {
+            $this->buildDir = $server["buildDir"];
+            $this->dotRevisionFilename = $this->buildDir . "/" . $this->dotRevisionFilename;
+            $this->diffArchiveName = $this->buildDir . "/" . $this->diffArchiveName;
+        }
+
+        $filename = $this->diffArchiveName;        
+
+        if(file_exists($filename))
+          unlink($filename);
+
+        $this->diffArchive = new ExtendedZipArchive();
+        $this->diffArchive->open($filename, ZipArchive::CREATE);
+    }
+
+    /**
+     * Deploy current revision
+     * @param string $revision
+     */
+    public function deploy($revision = 'HEAD')  {
+        $this->output("<bgCyan>Deploying files...");
+
+        $start = microtime(true);
+        parent::deploy($revision);
+        $time = microtime(true) - $start;
+
+        $this->output("<bgGreen>------ Deployment time: " . round($time, 2) . " s ------</bgGreen>");
+
+        if(!empty($this->site)) {
+            $scriptUrl = $this->site . "/deploy.php";
+
+            $this->output("<bgGreen>Run deploy script: $scriptUrl");
+            @file_get_contents($scriptUrl);
+        }
+
+        if(!$this->debug && file_exists($this->diffArchiveName))
+            @unlink($this->diffArchiveName);
+
+        if(isset($this->publicDeployFile) && file_exists($this->publicDeployFile))
+            @unlink($this->publicDeployFile);
+
+        $this->output("<bgGreen>Deploy was successful.");
+    }
+
+    /**
+     * Compare local and remote revision
+     * @param string $localRevision
+     * @return array
+     * @throws Exception
+     */
+    protected function compare($localRevision) {
+        $files = parent::compare($localRevision);
+
+        foreach($files as $section) {
+
+            // if was bower.json updated
+
+            if(isset($this->bowerDir) && is_dir($this->bowerDir))
+                if(in_array($this->bowerFile, $section)) {
+                    $version = `bower --version`;
+
+                    if(preg_match("|\d+\.\d+\.\d+|", $version)) {
+                        $this->output("<bgCyan>Updating bower...");
+                        `bower update`;
+                        $this->output("OK");
+                        $this->diffArchive->addDir($this->bowerDir, $this->bowerDir);
+                    } else throw new Exception("Bower is not supported!");
+                }
+
+            if(isset($this->composerDir) && is_dir($this->composerDir))
+                if(in_array($this->composerFile, $section)) {                    
+                    $version = `composer --version`;
+
+                    if(preg_match("|Composer version (.+)|", $version)) {
+                        $this->output("<bgCyan>Updating composer...");
+                        `composer update`;
+                        $this->output("OK");
+                        $this->diffArchive->addDir($this->composerDir, $this->composerDir);
+
+                    } else throw new Exception("Composer is not supported!");
+                }
+
+        }
+
+        $this->output("<bgCyan>Generating ZIP archive...");
+
+        if(!empty($files["upload"])) {
+            foreach($files["upload"] as $file) {
+                if(!in_array($file, $this->buildFiles))
+                    $this->diffArchive->addFile($file, $file);
+            }
+            
+            unset($files["upload"]);
+            $files["upload"] = Array();
+        }
+
+        $this->diffArchive->close();        
+
+        if(file_exists($this->diffArchiveName)) {
+            $files["upload"][] = $this->diffArchiveName;
+        }
+
+        $this->output("OK");
+
+        $this->buildUpload($files);
+
+        return $files;
+    }
+
+    /**
+     * Attach build files to upload queue
+     * @param $files
+     */
+    protected function buildUpload(&$files) {
+        if(empty($files["upload"]))
+            return $files;
+
+
+        $files["upload"] += $this->buildFiles;
+
+        $publicDir = realpath($this->publicDir);
+
+        $deployFile = __DIR__ . "/" . $this->buildDeployFile;
+
+        if(file_exists($deployFile) && is_dir($publicDir)) {
+            $this->publicDeployFile = $this->publicDir . "/" . $this->buildDeployFile;
+            copy($deployFile, $this->publicDeployFile);
+            $files["upload"][] = $this->publicDeployFile;
+        }
+
+        $this->output("<bgCyan>Build files added to upload queue.");
+    }
+
+}
+
+
+/**
+ * Run deployment
+ */
+try {
+
+    new ZIPloy();
+
+} catch (Exception $e) {
+    // Display the error in red
+    echo Ansi::tagsToColors("\r\n<red>Oh Snap: {$e->getMessage()}\r\n");
+}
+
