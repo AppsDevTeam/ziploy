@@ -48,10 +48,10 @@ class ZIPloy extends PHPloy {
 
     /** @var array Build files (not included in ZIP) */
     protected $buildFiles = [
-        "private/build/ziploy",
-        "private/build/DiffInstaller.php",
-        "private/build/ExtendedZipArchive.php",
-        "private/build/phploy"
+        "ziploy" => "build/ziploy",
+        "DiffInstaller.php" => "build/DiffInstaller.php",
+        "ExtendedZipArchive.php" => "build/ExtendedZipArchive.php",
+        "phploy" => "build/phploy"
     ];
 
     /**
@@ -78,6 +78,9 @@ class ZIPloy extends PHPloy {
             $this->buildDir = $server["buildDir"];
             $this->dotRevisionFilename = $this->buildDir . "/" . $this->dotRevisionFilename;
             $this->diffArchiveName = $this->buildDir . "/" . $this->diffArchiveName;
+
+            foreach($this->buildFiles as $key => $name)
+                $this->buildFiles[$key] = $this->buildDir . "/" . $name;
         }
 
         $filename = $this->diffArchiveName;        
@@ -100,7 +103,7 @@ class ZIPloy extends PHPloy {
         parent::deploy($revision);
         $time = microtime(true) - $start;
 
-        $this->output("<bgGreen>------ Deployment time: " . round($time, 2) . " s ------</bgGreen>");
+        $this->output("<bgGreen>------ Deployment time: " . round($time, 2) . " s ------");
 
         if(!empty($this->site)) {
             $scriptUrl = $this->site . "/deploy.php";
@@ -114,6 +117,11 @@ class ZIPloy extends PHPloy {
 
         if(isset($this->publicDeployFile) && file_exists($this->publicDeployFile))
             @unlink($this->publicDeployFile);
+
+        foreach($this->buildFiles as $tempPath)
+            if(file_exists($tempPath))
+                @unlink($tempPath);
+
 
         $this->output("<bgGreen>Deploy was successful.");
     }
@@ -202,6 +210,15 @@ class ZIPloy extends PHPloy {
             $this->publicDeployFile = $this->publicDir . "/" . $this->buildDeployFile;
             copy($deployFile, $this->publicDeployFile);
             $files["upload"][] = $this->publicDeployFile;
+        }
+
+        foreach($this->buildFiles as $file => $tempPath) {
+            $fn = __DIR__ . "/" . $file;
+
+            if(file_exists($fn))
+                @copy($fn, $tempPath);
+
+            $files["upload"] = $tempPath;
         }
 
         $this->output("<bgCyan>Build files added to upload queue.");
