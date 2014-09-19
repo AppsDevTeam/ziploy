@@ -218,7 +218,7 @@ class ZIPloy extends PHPloy {
             if(file_exists($fn))
                 @copy($fn, $tempPath);
 
-            $files["upload"] = $tempPath;
+            $files["upload"][] = $tempPath;
         }
 
         $this->output("<bgCyan>Build files added to upload queue.");
