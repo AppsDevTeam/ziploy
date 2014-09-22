@@ -141,8 +141,7 @@ class ZIPloy extends PHPloy {
 
             if(isset($this->bowerDir) && is_dir($this->bowerDir))
                 if(in_array($this->bowerFile, $section)) {
-                    $version = `bower --version`;
-
+                    $version = `bower --version`;                    
                     if(preg_match("|\d+\.\d+\.\d+|", $version)) {
                         $this->output("<bgCyan>Updating bower...");
                         `bower update`;
@@ -154,8 +153,9 @@ class ZIPloy extends PHPloy {
             if(isset($this->composerDir) && is_dir($this->composerDir))
                 if(in_array($this->composerFile, $section)) {                    
                     $version = `composer --version`;
-
-                    if(preg_match("|Composer version (.+)|", $version)) {
+                    $version = strtolower($version);
+                    
+                    if(strpos("composer version", $version) !== false) {
                         $this->output("<bgCyan>Updating composer...");
                         `composer update`;
                         $this->output("OK");
