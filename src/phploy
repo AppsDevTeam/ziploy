@@ -662,7 +662,7 @@ class PHPloy
         if(!function_exists($method))
             throw new Exception("Function $method is not supported.");
 
-        $connection = $method($server['host'], $server['port'], 10);
+        $connection = @$method($server['host'], $server['port']);
         
         if ($connection) {
             $this->ftpDebug("Sending username and password");

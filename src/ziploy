@@ -154,8 +154,8 @@ class ZIPloy extends PHPloy {
                 if(in_array($this->composerFile, $section)) {                    
                     $version = `composer --version`;
                     $version = strtolower($version);
-                    
-                    if(strpos("composer version", $version) !== false) {
+
+                    if(strpos($version, "composer") !== false && strpos($version, "version") !== false) {
                         $this->output("<bgCyan>Updating composer...");
                         `composer update`;
                         $this->output("OK");
@@ -226,8 +226,7 @@ class ZIPloy extends PHPloy {
             $files["upload"][] = $tempPath;
         }
 
-        $this->output("<bgCyan>Build files added to upload queue.");
-        die;
+        $this->output("<bgCyan>Build files added to upload queue.");        
     }
 
 }
