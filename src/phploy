@@ -656,8 +656,14 @@ class PHPloy
         $pathsThatExist = array();
 
         $this->ftpDebug("Connecting to {$server['host']}:{$server['port']}");
-        $connection = @ftp_connect($server['host'], $server['port']);
 
+        $method = isset($server["secured"]) && $server["secured"] ? "ftp_ssl_connect" : "ftp_connect";
+
+        if(!function_exists($method))
+            throw new Exception("Function $method is not supported.");
+
+        $connection = $method($server['host'], $server['port'], 10);
+        
         if ($connection) {
             $this->ftpDebug("Sending username and password");
             if (! ftp_login($connection, $server['user'], $server['pass'])) {
