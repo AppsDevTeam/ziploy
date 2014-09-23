@@ -671,7 +671,9 @@ class PHPloy
             }
 
             $this->ftpDebug("Setting passive mode: {$server['passive']}");
-            ftp_pasv($connection, (bool) $server['passive']);
+            $passive = ftp_pasv($connection, (bool) $server['passive']);
+
+            $this->ftpDebug("Passive mode was set to: $passive");
 
             $this->ftpDebug("Changing directory to: {$server['path']}");
             if (@ftp_chdir($connection, $server['path'])) {

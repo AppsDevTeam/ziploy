@@ -112,6 +112,10 @@ class ZIPloy extends PHPloy {
             @file_get_contents($scriptUrl);
         }
 
+        $this->output("<bgGreen>Deploy was successful.");
+    }
+
+    public function clean() {
         if(!$this->debug && file_exists($this->diffArchiveName))
             @unlink($this->diffArchiveName);
 
@@ -122,8 +126,7 @@ class ZIPloy extends PHPloy {
             if(file_exists($tempPath))
                 @unlink($tempPath);
 
-
-        $this->output("<bgGreen>Deploy was successful.");
+        $this->output("<bgGreen>Deploy files was removed.");
     }
 
     /**
@@ -139,7 +142,7 @@ class ZIPloy extends PHPloy {
 
             // if was bower.json updated
 
-            if(isset($this->bowerDir) && is_dir($this->bowerDir))
+            if(!$this->debug && isset($this->bowerDir) && is_dir($this->bowerDir))
                 if(in_array($this->bowerFile, $section)) {
                     $version = `bower --version`;                    
                     if(preg_match("|\d+\.\d+\.\d+|", $version)) {
@@ -150,7 +153,7 @@ class ZIPloy extends PHPloy {
                     } else throw new Exception("Bower is not supported!");
                 }
 
-            if(isset($this->composerDir) && is_dir($this->composerDir))
+            if(!$this->debug && isset($this->composerDir) && is_dir($this->composerDir))
                 if(in_array($this->composerFile, $section)) {                    
                     $version = `composer --version`;
                     $version = strtolower($version);
@@ -240,7 +243,8 @@ class ZIPloy extends PHPloy {
  */
 try {
 
-    new ZIPloy();
+    $ziploy = new ZIPloy();
+    $ziploy->clean();
 
 } catch (Exception $e) {
     // Display the error in red
