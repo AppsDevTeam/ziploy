@@ -215,6 +215,7 @@ class ZIPloy extends PHPloy {
             $this->publicDeployFile = $this->publicDir . "/" . $this->buildDeployFile;
             copy($deployFile, $this->publicDeployFile);
             $files["upload"][] = $this->publicDeployFile;
+            $this->debug("<bgYellow>Public deploy file craeted.");
         }
 
         foreach($this->buildFiles as $file => $tempPath) {
@@ -223,10 +224,12 @@ class ZIPloy extends PHPloy {
             if(file_exists($fn))
                 @copy($fn, $tempPath);
 
+            $this->debug("<bgYellow>File $fn moved to $tempPath.");
             $files["upload"][] = $tempPath;
         }
 
-        $this->output("<bgCyan>Build files added to upload queue.");        
+        $this->debug("<bgYellow>Directory private/build folder created.");
+        $this->output("<bgGreen>Build files added to upload queue.");
     }
 
 }
