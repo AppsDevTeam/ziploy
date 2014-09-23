@@ -475,7 +475,7 @@ class PHPloy
 
         // Fetch the .revision file from the server and write it to $tmpFile
         $this->ftpDebug("Fetching {$this->dotRevision} file");
-        if (@ftp_fget($this->connection, $tmpFile, $this->dotRevision, FTP_ASCII)) {
+        if (@ftp_nb_fget($this->connection, $tmpFile, $this->dotRevision, FTP_ASCII)) {
             fseek($tmpFile, 0);
             $remoteRevision = trim(fread($tmpFile, 1024));
         } else {
@@ -671,7 +671,7 @@ class PHPloy
             }
 
             $this->ftpDebug("Setting passive mode: {$server['passive']}");
-            ftp_pasv($connection, $server['passive']);
+            ftp_pasv($connection, (bool) $server['passive']);
 
             $this->ftpDebug("Changing directory to: {$server['path']}");
             if (@ftp_chdir($connection, $server['path'])) {
@@ -758,7 +758,7 @@ class PHPloy
                     throw new Exception("Tried to upload $file 10 times and failed. Something is wrong...");
                 }
 
-                $uploaded = ftp_put($this->connection, $file, $file, FTP_BINARY);
+                $uploaded = ftp_nb_put($this->connection, $file, $file, FTP_BINARY);
 
                 if (! $uploaded) {
                     $attempts = $attempts + 1;
@@ -845,7 +845,7 @@ class PHPloy
             $this->ftpDebug($consoleMessage);
         }
 
-        if (ftp_put($this->connection, $this->dotRevision, $temp, FTP_BINARY)) {
+        if (ftp_nb_put($this->connection, $this->dotRevision, $temp, FTP_BINARY)) {
             $this->debug("   Removing temp file $temp");
             unlink($temp);
             $this->output("   <green>Remote revision file updated.");
